@@ -1,0 +1,80 @@
+{
+  "ALERTA_FORMATO_COMPACTO": false,
+  "INCLUIR_LINK_BINANCE": true,
+  "INTERVALS_ENABLED": {
+    "1m": false,
+    "5m": true,
+    "15m": false,
+    "1h": true,
+    "4h": true,
+    "1d": true,
+    "1w": false
+  },
+  "CHANGE_THRESHOLD_BTC_ETH": {
+    "5m": 0.8,
+    "1h": 1.0,
+    "4h": 2.0,
+    "1d": 3.0,
+    "1w": 0.0
+  },
+  "CHANGE_THRESHOLD_DEFAULT": {
+    "5m": 5.0,
+    "1h": 7.0,
+    "4h": 8.0,
+    "1d": 8.0,
+    "1w": 0.0
+  },
+  "MIN_VOLUME_BY_INTERVAL": {
+    "1m": 2.0,
+    "5m": 1.0,
+    "15m": 5.0,
+    "1h": 3.0,
+    "4h": 25.0,
+    "1d": 50.0,
+    "1w": 100.0
+  },
+  "MIN_ALERT_INTERVAL_MINUTES": 1.0,
+  "VOLUMEN_EXTREMO_BY_INTERVAL": {
+    "5m": 1.0,
+    "1h": 100.0
+  },
+  "INTERVAL_CYCLE_SECONDS": {
+    "1m": 360,
+    "5m": 60,
+    "1h": 180,
+    "4h": 300,
+    "1d": 600,
+    "1w": 1800,
+    "15m": 360
+  },
+  "SOLO_VELA_CERRADA": false,
+  "DELTA_REPETICION_MINIMA": 5.0,
+  "ACTUALIZAR_SIMBOLOS_CADA_HORAS": 24,
+  "FUNDING_CACHE_SECONDS": 180,
+  "DELAY_ALERTAS_MS": 150,
+  "RSI_SOBREVENTA": 25,
+  "RSI_SOBRECOMPRA": 75,
+  "ACTIVAR_LONGS": true,
+  "ACTIVAR_SHORTS": true,
+  "PATRONES_ACTIVOS": {
+    "doji": true,
+    "marubozu": true,
+    "martillo": true,
+    "martillo_invertido": true,
+    "estrella_fugaz": true,
+    "peonza": true,
+    "envolvente_alcista": true,
+    "envolvente_bajista": true,
+    "pinzas_techo": true,
+    "pinzas_suelo": true,
+    "linea_penetrante": false,
+    "nube_oscura": false,
+    "estrella_manana": false,
+    "estrella_tarde": false,
+    "tres_soldados_blancos": false,
+    "tres_cuervos_negros": false,
+    "tres_metodos_ascendentes": false,
+    "tres_metodos_descendentes": false
+  },
+  "CALMA_CICLOS_MAX": 3
+}
