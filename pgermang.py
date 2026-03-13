@@ -1923,7 +1923,16 @@ async def monitor_interval(interval, symbols, session):
 
                 try:
                      datos = cache_ciclo[symbol]
+                     # =========================
+                     # 🚀 AUTO TRADE ETH 1H
+                     # =========================
+                     if symbol == "ETHUSDT" and interval == "1h":
+                         tipo = datos.get("tipo")
+                         if tipo in ["entrada_extrema_long", "entrada_extrema_short"]:
+                             print(f"🤖 AUTO TRADE ACTIVADO → {symbol} {interval} | {tipo}")
+                     # aquí luego enviaremos el webhook a Finandy
 
+					
                      # Solo si pasó el filtro y vamos a alertar, pedimos el funding fee
                      funding = await limitado(get_funding_fee, symbol, session)
                      llamadas_fee += 1
