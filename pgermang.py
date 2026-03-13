@@ -1814,7 +1814,8 @@ async def monitor_interval(interval, symbols, session):
                         # Divergencias
                         divergencia = detectar_divergencia_rsi_macd(closes, highs, lows, rsi_series, interval)
                         if divergencia:
-                            # LONG
+                            print(f"🐋 DIV DETECTADA → {symbol} {interval} | {divergencia} | RSI: {rsi}")
+							# LONG
                             if divergencia == "Divergencia Alcista RSI" and rsi <= RSI_SOBREVENTA:
 
                                 min_inval = min(lows[-6:])
