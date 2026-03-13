@@ -1804,7 +1804,9 @@ async def monitor_interval(interval, symbols, session):
                     # 🎯 PRIORIDAD 1 — ENTRADA (Divergencia + RSI extremo)
                     # ==========================================================
 
-                    if ESTRATEGIA_DIVERGENCIA_ACTIVA and interval in INTERVALOS_ENTRADA:
+                    #if ESTRATEGIA_DIVERGENCIA_ACTIVA and interval in INTERVALOS_ENTRADA:
+					if ESTRATEGIA_DIVERGENCIA_ACTIVA and (interval in INTERVALOS_ENTRADA or (symbol == "ETHUSDT" and interval == "1h")):
+
 
                         if volume < min_volume:
                             return None
