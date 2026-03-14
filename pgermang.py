@@ -80,6 +80,13 @@ INTERVALOS_ENTRADA = ["4h", "1d", "1w"]
 INTERVALOS_MOVIMIENTO = ["5m", "15m", "1h", "4h"]
 MIN_DIVERGENCE_PRICE_DIFF = 0.5  # % mínimo entre pivots
 
+AUTO_TRADE = False
+AUTO_LONG = True
+AUTO_SHORT = False
+last_auto_trade_time = 0
+AUTO_TRADE_COOLDOWN = 3600
+last_trade_candle = None
+
 ADMINS = {
     1294216517,  # TU USER ID
 }
@@ -144,7 +151,7 @@ def cargar_config():
     global DELTA_REPETICION_MINIMA, ACTUALIZAR_SIMBOLOS_CADA_HORAS, FUNDING_CACHE_SECONDS, DELAY_ALERTAS_MS
     global VOLUMEN_EXTREMO_BY_INTERVAL, PATRONES_ACTIVOS
     global CALMA_CICLOS_MAX
-    global ACTIVAR_LONGS, ACTIVAR_SHORTS
+    global ACTIVAR_LONGS, ACTIVAR_SHORTS, AUTO_TRADE, AUTO_LONG, AUTO_SHORT
 
 
     if CONFIG_PATH.exists():
@@ -178,6 +185,9 @@ def cargar_config():
             CALMA_CICLOS_MAX = data.get("CALMA_CICLOS_MAX", CALMA_CICLOS_MAX)            
             ACTIVAR_LONGS = data.get("ACTIVAR_LONGS", True)
             ACTIVAR_SHORTS = data.get("ACTIVAR_SHORTS", True)
+            AUTO_TRADE = data.get("auto_trade", AUTO_TRADE)
+            AUTO_LONG = data.get("auto_long", AUTO_LONG)
+            AUTO_SHORT = data.get("auto_short", AUTO_SHORT)
 
             print("✅ Configuración cargada desde config.json")
         except Exception as e:
@@ -277,14 +287,6 @@ def estado(update: Update, context: CallbackContext):
 
 
 def umbral(update: Update, context: CallbackContext):
-    #global CHANGE_THRESHOLD_BTC_ETH, CHANGE_THRESHOLD_DEFAULT
-#    if not context.args:
-#        update.effective_message.reply_text(
-#            f"📊 Umbrales actuales:\n"
-#            f"• BTC/ETH: {CHANGE_THRESHOLD_BTC_ETH}%\n"
-#            f"• Otros símbolos: {CHANGE_THRESHOLD_DEFAULT}%"
-#        )
-#        return
     if context.args[0].lower() == "a":
         if len(context.args) == 2:
             try:
@@ -314,9 +316,31 @@ def umbral(update: Update, context: CallbackContext):
             "/umbral a 0.5 — cambiar BTC/ETH\n"
             "/umbral b 3 — cambiar otros símbolos"
         )
-
-
 VALID_INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d","1w"]
+
+
+def submenu_auto_trade(update: Update, context: CallbackContext):
+
+    query = update.callback_query
+    query.answer()
+
+    icon_auto = "🟢" if AUTO_TRADE else "🔴"
+    icon_long = "🟢" if AUTO_LONG else "🔴"
+    icon_short = "🟢" if AUTO_SHORT else "🔴"
+
+    keyboard = [
+        [InlineKeyboardButton(f"{icon_auto} Auto Trade", callback_data="toggle_auto_trade")],
+        [InlineKeyboardButton(f"{icon_long} Auto LONG", callback_data="toggle_auto_long"),
+         InlineKeyboardButton(f"{icon_short} Auto SHORT", callback_data="toggle_auto_short")],
+        [InlineKeyboardButton("⬅️ Volver", callback_data="menu")]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    query.edit_message_text(
+        "🤖 CONFIGURACIÓN AUTO TRADING",
+        reply_markup=reply_markup
+    )
 
 
 def simbolos(update: Update, context: CallbackContext):
@@ -514,6 +538,7 @@ HANDLERS = {
     "simbolos": simbolos,
     "config": config,
     "ayuda": ayuda,
+    "submenu_auto_trade": submenu_auto_trade,
 }
 
 
@@ -530,7 +555,7 @@ def menu(update: Update, context: CallbackContext):
          InlineKeyboardButton("📦 Volumen", callback_data='submenu_volumen')],
         [InlineKeyboardButton("🔺 Umbral de Cambio", callback_data='submenu_umbral'),
           InlineKeyboardButton("📈 Umbral RSI", callback_data="submenu_rsi")],
-        [InlineKeyboardButton("⚙️ Concurrencia", callback_data='submenu_concurrencia'),
+        [InlineKeyboardButton("🤖 Auto Trading", callback_data='submenu_auto_trade')],
          InlineKeyboardButton("⏱️ Intervalo entre alertas", callback_data='submenu_alerta')],
         [InlineKeyboardButton("🔁 Frecuencia de Chequeo", callback_data='submenu_ciclo_intervalos'),
          InlineKeyboardButton("📤 Modo de Envío", callback_data='submenu_envio')],
@@ -588,6 +613,30 @@ def manejar_callback(update: Update, context: CallbackContext):
         query.answer("✔️ Modo vela actualizado")
         return
 
+    if comando == "toggle_auto_trade":
+        global AUTO_TRADE
+        AUTO_TRADE = not AUTO_TRADE
+        guardar_config()
+        submenu_auto_trade(update, context)
+        query.answer("✔️ Auto Trade actualizado")
+        return
+   
+    if comando == "toggle_auto_long":
+        global AUTO_LONG
+        AUTO_LONG = not AUTO_LONG
+        guardar_config()
+        submenu_auto_trade(update, context)
+        query.answer("✔️ Auto LONG actualizado")
+        return  
+
+    if comando == "toggle_auto_short":
+        global AUTO_SHORT
+        AUTO_SHORT = not AUTO_SHORT
+        guardar_config()
+        submenu_auto_trade(update, context)
+        query.answer("✔️ Auto SHORT actualizado")
+        return
+    
     if comando == "toggle_link":
         global INCLUIR_LINK_BINANCE
         INCLUIR_LINK_BINANCE = not INCLUIR_LINK_BINANCE
@@ -934,6 +983,7 @@ def mostrar_configuracion_general(query):
         [InlineKeyboardButton("⏱️ Intervalos Activos", callback_data="intervalo_menu")],
         [InlineKeyboardButton(f"💸 Cache Funding ({FUNDING_CACHE_SECONDS}s)", callback_data='submenu_funding_cache')],
         [InlineKeyboardButton(f"😌 Modo Calma ({CALMA_CICLOS_MAX} ciclos)", callback_data='cambiar_calma')],
+        [InlineKeyboardButton("⚙️ Concurrencia", callback_data='submenu_concurrencia')],
         [InlineKeyboardButton("📦 Símbolos Monitoreados", callback_data='simbolos')],
         [InlineKeyboardButton("♻️ Reiniciar Bot", callback_data='reiniciar_bot')],
         [InlineKeyboardButton("🔙 Volver", callback_data='volver_menu')]
@@ -1466,6 +1516,22 @@ async def get_funding_fee(symbol, session):
     funding_cache[symbol] = (fee, now)
     return fee
 
+
+async def hay_posicion_abierta(symbol, session):
+
+    try:
+        url = f"https://fapi.binance.com/fapi/v2/positionRisk?symbol={symbol}"
+        res = await limitado(async_safe_request, url, session, symbol)
+        if not res:
+            return False
+        position_amt = float(res[0]["positionAmt"])
+        return abs(position_amt) > 0
+
+    except Exception as e:
+        print(f"⚠️ Error verificando posición: {e}")
+        return False
+
+
 async def get_data(symbol, interval, session):
 
     global api_call_count, api_klines_count
@@ -1691,7 +1757,14 @@ def send_alert(symbol, interval, change, volume, price, funding, rsi, macd, sign
     patrones = kwargs.get("patrones")
     texto_patron = f"\n 🕯️ Patrón: {', '.join(patrones)}" if patrones else ""
     
-    badge_extrema = "🚨 !ALERTA ENTRADA! 🚨\n" if es_entrada_extrema else "⚡ ALERTA MOVIMIENTO ⚡\n"
+    #badge_extrema = "🚨 !ALERTA ENTRADA! 🚨\n" if es_entrada_extrema else "⚡ ALERTA MOVIMIENTO ⚡\n"
+    if es_entrada_extrema:
+        if symbol == "ETHUSDT" and interval == "1h":
+            badge_extrema = "🐋 ETH 1H — ENTRADA POR DIVERGENCIA\n"
+        else:
+            badge_extrema = "🚨 !ALERTA ENTRADA! 🚨\n"
+    else:
+        badge_extrema = "⚡ ALERTA MOVIMIENTO ⚡\n"
     
     if ALERTA_FORMATO_COMPACTO:
         message = f"""{badge_extrema}{encabezado_especial}{color_direccion} <b>{direction}</b> - {base} | {emoji_direccion} {'Subiendo' if change > 0 else 'Bajando'}  
@@ -1722,9 +1795,25 @@ def send_alert(symbol, interval, change, volume, price, funding, rsi, macd, sign
 ### 🌀 ATR: {atr}  ---esto para mostrar en alerta ATR volatilidad
 ### 📊 MACD: {macd} | Signal: {signal}  o usar para {divergencia}  
 
-#-----------------------------------------------------------------------------------------------------------------------
+
+
+#-------------------------Cuando haya señal imprimirá algo así:-------------------------------------------------------------
+async def ejecutar_auto_trade(symbol, tipo, price):
+
+    side = "LONG" if tipo == "entrada_extrema_long" else "SHORT"
+
+    print("================================")
+    print("🤖 AUTO TRADE EJECUTADO")
+    print(f"SYMBOL: {symbol}")
+    print(f"SIDE: {side}")
+    print(f"PRICE: {price}")
+    print("================================")
+#---------------------------------------Esto nos permite probar el sistema sin abrir trades reales-------------------------
+
+
 async def monitor_interval(interval, symbols, session):
     global api_call_count, api_klines_count, api_funding_count
+    global last_auto_trade_time
 
     wait_time = INTERVAL_CYCLE_SECONDS[interval]
     min_volume = MIN_VOLUME_BY_INTERVAL[interval]
@@ -1804,9 +1893,8 @@ async def monitor_interval(interval, symbols, session):
                     # 🎯 PRIORIDAD 1 — ENTRADA (Divergencia + RSI extremo)
                     # ==========================================================
 
-                    #if ESTRATEGIA_DIVERGENCIA_ACTIVA and interval in INTERVALOS_ENTRADA:
+		    #if ESTRATEGIA_DIVERGENCIA_ACTIVA and interval in INTERVALOS_ENTRADA:
                     if ESTRATEGIA_DIVERGENCIA_ACTIVA and (interval in INTERVALOS_ENTRADA or (symbol == "ETHUSDT" and interval == "1h")):
-
 
                         if volume < min_volume:
                             return None
@@ -1814,9 +1902,10 @@ async def monitor_interval(interval, symbols, session):
                         # Divergencias
                         divergencia = detectar_divergencia_rsi_macd(closes, highs, lows, rsi_series, interval)
                         if divergencia:
-                            #print(f"🐋 DIV DETECTADA → {symbol} {interval} | {divergencia} | RSI: {rsi}")
-							# LONG
-                            if divergencia == "Divergencia Alcista RSI" and rsi <= RSI_SOBREVENTA:
+                            #print(f"🐋 DIV DETECTADA → {symbol} {interval} | {divergencia} | RSI: {rsi}")    para log en la consola de div
+                            # LONG
+                            #if divergencia == "Divergencia Alcista RSI" and rsi <= RSI_SOBREVENTA:
+                            if divergencia == "Divergencia Alcista RSI" and rsi <= RSI_SOBREVENTA and AUTO_LONG:
 
                                 min_inval = min(lows[-6:])
                                 riesgo = last_close - min_inval
@@ -1841,7 +1930,8 @@ async def monitor_interval(interval, symbols, session):
                                 return symbol
 
                             # SHORT
-                            if divergencia == "Divergencia Bajista RSI" and rsi >= RSI_SOBRECOMPRA:
+                            #if divergencia == "Divergencia Bajista RSI" and rsi >= RSI_SOBRECOMPRA:
+                            if divergencia == "Divergencia Bajista RSI" and rsi >= RSI_SOBRECOMPRA and AUTO_SHORT:
 
                                 max_inval = max(highs[-6:])
                                 riesgo = max_inval - last_close
@@ -1923,16 +2013,41 @@ async def monitor_interval(interval, symbols, session):
 
                 try:
                      datos = cache_ciclo[symbol]
+
                      # =========================
                      # 🚀 AUTO TRADE ETH 1H
                      # =========================
-                     if symbol == "ETHUSDT" and interval == "1h":
+                     if AUTO_TRADE and symbol == "ETHUSDT" and interval == "1h":
                          tipo = datos.get("tipo")
+                         # verificar permisos
+                         if tipo == "entrada_extrema_long" and not AUTO_LONG:
+                             return 0
+                         if tipo == "entrada_extrema_short" and not AUTO_SHORT:
+                             return 0
                          if tipo in ["entrada_extrema_long", "entrada_extrema_short"]:
-                             print(f"🤖 AUTO TRADE ACTIVADO → {symbol} {interval} | {tipo}")
-                     # aquí luego enviaremos el webhook a Finandy
+                             candle_id = int(time.time() // 3600)
+                             if candle_id != last_trade_candle and time.time() - last_auto_trade_time > AUTO_TRADE_COOLDOWN:
+                                 print(f"🤖 AUTO TRADE ACTIVADO → {symbol} {interval} | {tipo}")
+ 
+                                 posicion_abierta = await hay_posicion_abierta(symbol, session)
+                                 if posicion_abierta:
+                                     print(f"⚠️ Ya hay posición abierta en {symbol}, no se abre otra.")
+                                     return 0
+                                 print(f"🤖 AUTO TRADE ACTIVADO → {symbol} {interval} | {tipo}")
+                                 
+                                 await ejecutar_auto_trade(symbol, tipo, datos["price"])  #que solo imprime en consola.
 
-					
+                                 last_auto_trade_time = time.time()
+                                 last_trade_candle = candle_id   
+ 
+                     # webhook a Finandy
+                     #data_trade = {
+                     #    "symbol": symbol,
+                     #    "side": "buy" if tipo == "entrada_extrema_long" else "sell"
+                     #}
+                     #await session.post(WEBHOOK_FINANDY, json=data_trade)
+
+
                      # Solo si pasó el filtro y vamos a alertar, pedimos el funding fee
                      funding = await limitado(get_funding_fee, symbol, session)
                      llamadas_fee += 1
@@ -2016,5 +2131,6 @@ if __name__ == "__main__":
             traceback.print_exc()
             print("🔁 Reiniciando en 10 segundos...")
             time.sleep(10)
+			
 
 
