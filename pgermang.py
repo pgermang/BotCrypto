@@ -209,8 +209,8 @@ def guardar_config():
         "SOLO_VELA_CERRADA": SOLO_VELA_CERRADA,
         "DELTA_REPETICION_MINIMA": DELTA_REPETICION_MINIMA,
         "ACTUALIZAR_SIMBOLOS_CADA_HORAS": ACTUALIZAR_SIMBOLOS_CADA_HORAS,
-	"FUNDING_CACHE_SECONDS": FUNDING_CACHE_SECONDS,
-	"DELAY_ALERTAS_MS": DELAY_ALERTAS_MS,
+	    "FUNDING_CACHE_SECONDS": FUNDING_CACHE_SECONDS,
+	    "DELAY_ALERTAS_MS": DELAY_ALERTAS_MS,
         "RSI_SOBREVENTA": RSI_SOBREVENTA,
         "RSI_SOBRECOMPRA": RSI_SOBRECOMPRA,
         "ACTIVAR_LONGS": ACTIVAR_LONGS,
@@ -224,7 +224,6 @@ def guardar_config():
         print("✅ Configuración guardada en config.json")
     except Exception as e:
         print(f"⚠️ Error al guardar configuración: {e}")
-
 
 
 def should_send_alert(symbol, interval, new_change):
@@ -322,7 +321,11 @@ VALID_INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d","1w"]
 def submenu_auto_trade(update: Update, context: CallbackContext):
 
     query = update.callback_query
-    query.answer()
+    if query:
+        query.answer()
+    else:
+        # en caso de que se llame desde un update normal (no callback)
+        update.effective_message.reply_text("🤖 Submenú Auto Trading")
 
     icon_auto = "🟢" if AUTO_TRADE else "🔴"
     icon_long = "🟢" if AUTO_LONG else "🔴"
@@ -551,6 +554,8 @@ def menu(update: Update, context: CallbackContext):
         return
 
     keyboard = [
+		[InlineKeyboardButton("🤖 Auto Trading", callback_data='submenu_auto_trade')],
+		[InlineKeyboardButton("⚙️ Concurrencia", callback_data='submenu_concurrencia')],
         [InlineKeyboardButton("🕯️ Patrones de Velas", callback_data='submenu_patrones'),
          InlineKeyboardButton("📦 Volumen", callback_data='submenu_volumen')],
         [InlineKeyboardButton("🔺 Umbral de Cambio", callback_data='submenu_umbral'),
