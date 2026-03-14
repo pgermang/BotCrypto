@@ -554,13 +554,13 @@ def menu(update: Update, context: CallbackContext):
         [InlineKeyboardButton("🕯️ Patrones de Velas", callback_data='submenu_patrones'),
          InlineKeyboardButton("📦 Volumen", callback_data='submenu_volumen')],
         [InlineKeyboardButton("🔺 Umbral de Cambio", callback_data='submenu_umbral'),
-          InlineKeyboardButton("📈 Umbral RSI", callback_data="submenu_rsi")],
-        [InlineKeyboardButton("🤖 Auto Trading", callback_data='submenu_auto_trade')],
+         InlineKeyboardButton("📈 Umbral RSI", callback_data="submenu_rsi")],
+        [InlineKeyboardButton("🤖 Auto Trading", callback_data='submenu_auto_trade'),
          InlineKeyboardButton("⏱️ Intervalo entre alertas", callback_data='submenu_alerta')],
         [InlineKeyboardButton("🔁 Frecuencia de Chequeo", callback_data='submenu_ciclo_intervalos'),
          InlineKeyboardButton("📤 Modo de Envío", callback_data='submenu_envio')],
         [InlineKeyboardButton("📊 Estado del Bot", callback_data='estado'),
-        InlineKeyboardButton("🛠️ Configuración +", callback_data='submenu_configuracion')],
+         InlineKeyboardButton("🛠️ Configuración +", callback_data='submenu_configuracion')],
         [InlineKeyboardButton("❓ Ayuda", callback_data='ayuda')]
     ]
 
