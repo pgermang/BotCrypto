@@ -1,4 +1,8 @@
 {
+  "webhook_finandy": "https://tu-webhook-finandy-aqui"
+  "AUTO_TRADE": false,
+  "AUTO_LONG": true,
+  "AUTO_SHORT": false
   "ALERTA_FORMATO_COMPACTO": false,
   "INCLUIR_LINK_BINANCE": true,
   "INTERVALS_ENABLED": {
