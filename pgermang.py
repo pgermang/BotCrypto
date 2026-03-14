@@ -555,12 +555,11 @@ def menu(update: Update, context: CallbackContext):
 
     keyboard = [
 		[InlineKeyboardButton("🤖 Auto Trading", callback_data='submenu_auto_trade')],
-		[InlineKeyboardButton("⚙️ Concurrencia", callback_data='submenu_concurrencia')],
         [InlineKeyboardButton("🕯️ Patrones de Velas", callback_data='submenu_patrones'),
          InlineKeyboardButton("📦 Volumen", callback_data='submenu_volumen')],
         [InlineKeyboardButton("🔺 Umbral de Cambio", callback_data='submenu_umbral'),
          InlineKeyboardButton("📈 Umbral RSI", callback_data="submenu_rsi")],
-        [InlineKeyboardButton("🤖 Auto Trading", callback_data='submenu_auto_trade'),
+        [InlineKeyboardButton("⚙️ Concurrencia", callback_data='submenu_concurrencia'),
          InlineKeyboardButton("⏱️ Intervalo entre alertas", callback_data='submenu_alerta')],
         [InlineKeyboardButton("🔁 Frecuencia de Chequeo", callback_data='submenu_ciclo_intervalos'),
          InlineKeyboardButton("📤 Modo de Envío", callback_data='submenu_envio')],
