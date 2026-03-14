@@ -343,7 +343,7 @@ def submenu_auto_trade(update: Update, context: CallbackContext):
         [InlineKeyboardButton(f"{icon_auto} Auto Trade", callback_data="toggle_auto_trade")],
         [InlineKeyboardButton(f"{icon_long} Auto LONG", callback_data="toggle_auto_long"),
          InlineKeyboardButton(f"{icon_short} Auto SHORT", callback_data="toggle_auto_short")],
-        [InlineKeyboardButton("⬅️ Volver", callback_data="menu")]
+        [InlineKeyboardButton("⬅️ Volver", callback_data="volver_menu")]
     ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -622,7 +622,11 @@ def manejar_callback(update: Update, context: CallbackContext):
         mostrar_configuracion_general(query)
         query.answer("✔️ Modo vela actualizado")
         return
-
+		
+    if comando == "submenu_auto_trade":
+        submenu_auto_trade(update, context)
+        return
+		
     if comando == "toggle_auto_trade":
         global AUTO_TRADE
         AUTO_TRADE = not AUTO_TRADE
