@@ -319,14 +319,21 @@ VALID_INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d","1w"]
 
 
 def submenu_auto_trade(update: Update, context: CallbackContext):
+    """
+    Submenú de Auto Trading: muestra y controla AUTO_TRADE, AUTO_LONG y AUTO_SHORT.
+    Compatible si se llama desde callback_query o desde update normal.
+    """
 
     query = update.callback_query
+
+    # Si es un botón, contestamos para que desaparezca el "reloj"
     if query:
         query.answer()
+        send_target = query.edit_message_text
     else:
-        # en caso de que se llame desde un update normal (no callback)
-        update.effective_message.reply_text("🤖 Submenú Auto Trading")
+        send_target = update.effective_message.reply_text
 
+    # Iconos dinámicos
     icon_auto = "🟢" if AUTO_TRADE else "🔴"
     icon_long = "🟢" if AUTO_LONG else "🔴"
     icon_short = "🟢" if AUTO_SHORT else "🔴"
@@ -340,10 +347,8 @@ def submenu_auto_trade(update: Update, context: CallbackContext):
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    query.edit_message_text(
-        "🤖 CONFIGURACIÓN AUTO TRADING",
-        reply_markup=reply_markup
-    )
+    # Enviamos o editamos mensaje según cómo se llame
+    send_target("🤖 CONFIGURACIÓN AUTO TRADING", reply_markup=reply_markup)
 
 
 def simbolos(update: Update, context: CallbackContext):
