@@ -60,13 +60,13 @@ CHANGE_THRESHOLD_DEFAULT = {
 MIN_ALERT_INTERVAL_MINUTES = 1
 SOLO_VELA_CERRADA = False
 DELTA_REPETICION_MINIMA = 0.4
-MAX_CONCURRENT_TASKS = 10
+MAX_CONCURRENT_TASKS = 5
 ACTUALIZAR_SIMBOLOS_CADA_HORAS = 24
 RSI_SOBRECOMPRA = 75
 RSI_SOBREVENTA = 25
 ACTIVAR_LONGS = True
 ACTIVAR_SHORTS = True
-FUNDING_CACHE_SECONDS = 180  # Duración del cache de funding en segundos
+FUNDING_CACHE_SECONDS = 600  # Duración del cache de funding en segundos
 AGRUPAR_ALERTAS = False
 DELAY_ALERTAS_MS = 150  # tiempo entre mensajes individuales, en milisegundos
 CALMA_CICLOS_MAX = 3  # ciclos de calma tras no cumplir condiciones
@@ -140,6 +140,7 @@ async def limitado(func, *args, **kwargs):
     global api_call_count
     async with semaphore:
         api_call_count += 1
+        await asyncio.sleep(0.25)
         return await func(*args, **kwargs)
 
 
@@ -1414,6 +1415,7 @@ def iniciar_comandos():
     threading.Thread(target=updater.start_polling, daemon=True).start()
 
 async def async_safe_request(url, session, symbol=None, max_retries=3):
+    res = None
     for intento in range(max_retries):
         try:
             async with session.get(url, timeout=8) as res:
@@ -1475,7 +1477,22 @@ def symbols_necesitan_actualizacion(horas=None):
     return edad_horas > horas
 
 
-EXCLUIDOS = {"BTCSTUSDT", "GAIBUSDT"}  # agrega más aquí
+EXCLUIDOS = {
+    "BTCSTUSDT",
+    "GAIBUSDT",
+    "TRUSTUSDT",
+    "UAIUSDT",
+    "FOLKSUSDT",
+    "STABLEUSDT",
+    "JCTUSDT",
+    "CLANKERUSDT",
+    "BEATUSDT",
+    "ALLOUSDT",
+    "PIEVERSEUSDT",
+    "SENTUSDT",
+    "BOBUSDT"
+}  # agrega más aquí
+
 
 async def get_symbols(session):
     url = "https://fapi.binance.com/fapi/v1/exchangeInfo"
@@ -2140,6 +2157,7 @@ if __name__ == "__main__":
             traceback.print_exc()
             print("🔁 Reiniciando en 10 segundos...")
             time.sleep(10)
+			
 			
 
 
