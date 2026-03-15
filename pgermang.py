@@ -1830,7 +1830,6 @@ async def ejecutar_auto_trade(symbol, tipo, price):
     print("================================")
 #---------------------------------------Esto nos permite probar el sistema sin abrir trades reales-------------------------
 
-
 async def monitor_interval(interval, symbols, session):
     global api_call_count, api_klines_count, api_funding_count
     global last_auto_trade_time
@@ -1853,114 +1852,78 @@ async def monitor_interval(interval, symbols, session):
                 try:
                     res = None   # 🔹 inicializar
 
-                    # ==========================================================
-                    # 🌙 MODO CALMA: si está en calma, saltar ciclos
-                    # ==========================================================
+                    # MODO CALMA: si está en calma, saltar
                     if symbol in calma_symbols:
                         _, ciclos_restantes = calma_symbols[symbol]
                         if ciclos_restantes > 0:
-                            calma_symbols[symbol] = (True, ciclos_restantes - 1)
-                            return None
+                           calma_symbols[symbol] = (True, ciclos_restantes - 1)
+                           return None
 
-                    # ==========================================================
-                    # 📥 DESCARGA DE DATOS KLINES
-                    # ==========================================================
                     url = f"https://fapi.binance.com/fapi/v1/klines?symbol={symbol}&interval={interval}&limit=100"
                     res = await limitado(async_safe_request, url, session, symbol)
-
                     nonlocal llamadas_klines, llamadas_total
                     llamadas_klines += 1
                     llamadas_total += 1
-
                     if not res or len(res) < 2:
                         return None
 
-                    # ==========================================================
-                    # 🕯 SOLO VELA CERRADA
-                    # ==========================================================
                     if SOLO_VELA_CERRADA:
                         close_time = int(res[-1][6]) / 1000
                         if time.time() < close_time:
                             return None
 
-                    # ==========================================================
-                    # 📊 DATOS BASE (livianos)
-                    # primero calculamos solo lo barato
-                    # ==========================================================
                     closes = [float(k[4]) for k in res]
                     highs = [float(k[2]) for k in res]
                     lows = [float(k[3]) for k in res]
-
                     last_close = closes[-1]
                     prev_close = closes[-2]
-
                     volume = float(res[-1][7]) * last_close / 1_000_000
                     change = ((last_close - prev_close) / prev_close) * 100
-
                     if symbol in ["BTCUSDT", "ETHUSDT"]:
                         threshold = CHANGE_THRESHOLD_BTC_ETH.get(interval, 0.0)
                     else:
                         threshold = CHANGE_THRESHOLD_DEFAULT.get(interval, 0.0)
 
+                    # CALCULAMOS INDICADORES
+                    df = pd.DataFrame({'high': highs, 'low': lows, 'close': closes})
+
+                    # RSI, MACD, SIGNAL (y series completas para divergencias)
+                    rsi_series = RSIIndicator(df['close']).rsi()
+                    macd_calc = MACD(close=df['close'])
+                    macd_series = macd_calc.macd()
+                    signal_series = macd_calc.macd_signal()
+
+                    rsi = rsi_series.iloc[-1]
+                    macd = macd_series.iloc[-1]
+                    signal = signal_series.iloc[-1]
+
+                    # ATR
+                    #from ta.volatility import AverageTrueRange
+                    #atr = AverageTrueRange(high=df['high'], low=df['low'], close=df['close'], window=14).average_true_range().iloc[-1]
+
+
+                    # Patrón de velas
+                    ultimas_velas = res[-6:]
+                    patrones = detectar_patrones(ultimas_velas)
+                                           
                     divergencia = None
 
                     # ==========================================================
                     # 🎯 PRIORIDAD 1 — ENTRADA (Divergencia + RSI extremo)
-                    # Primero RSI → luego divergencia → recién MACD/patrones
                     # ==========================================================
 
+		    #if ESTRATEGIA_DIVERGENCIA_ACTIVA and interval in INTERVALOS_ENTRADA:
                     if ESTRATEGIA_DIVERGENCIA_ACTIVA and (interval in INTERVALOS_ENTRADA or (symbol == "ETHUSDT" and interval == "1h")):
 
                         if volume < min_volume:
                             return None
 
-                        # ==========================================================
-                        # RSI primero (liviano)
-                        # evita calcular MACD en monedas sin contexto
-                        # ==========================================================
-                        df = pd.DataFrame({'close': closes})
-                        rsi_series = RSIIndicator(df['close']).rsi()
-                        rsi = rsi_series.iloc[-1]
-
-                        # ==========================================================
-                        # FILTRO RSI RÁPIDO
-                        # si no está cerca de extremos, no seguimos
-                        # ==========================================================
-                        if AUTO_LONG and AUTO_SHORT:
-                            if (RSI_SOBREVENTA + 10) < rsi < (RSI_SOBRECOMPRA - 10):
-                                return None
-                        elif AUTO_LONG:
-                            if rsi > (RSI_SOBREVENTA + 10):
-                                return None
-                        elif AUTO_SHORT:
-                            if rsi < (RSI_SOBRECOMPRA - 10):
-                                return None
-
-                        # ==========================================================
                         # Divergencias
-                        # solo si RSI justificó continuar
-                        # ==========================================================
                         divergencia = detectar_divergencia_rsi_macd(closes, highs, lows, rsi_series, interval)
-
                         if divergencia:
-
-                            # ==========================================================
-                            # MACD recién acá (pesado)
-                            # ==========================================================
-                            macd_calc = MACD(close=df['close'])
-                            macd_series = macd_calc.macd()
-                            signal_series = macd_calc.macd_signal()
-
-                            macd = macd_series.iloc[-1]
-                            signal = signal_series.iloc[-1]
-
-                            # ==========================================================
-                            # Patrón de velas solo si ya hay alerta real
-                            # ==========================================================
-                            ultimas_velas = res[-6:]
-                            patrones = detectar_patrones(ultimas_velas)
-
+                            #print(f"🐋 DIV DETECTADA → {symbol} {interval} | {divergencia} | RSI: {rsi}")    para log en la consola de div
                             # LONG
+                            #if divergencia == "Divergencia Alcista RSI" and rsi <= RSI_SOBREVENTA:
                             if divergencia == "Divergencia Alcista RSI" and AUTO_LONG:
 
                                 min_inval = min(lows[-6:])
@@ -1986,6 +1949,7 @@ async def monitor_interval(interval, symbols, session):
                                 return symbol
 
                             # SHORT
+                            #if divergencia == "Divergencia Bajista RSI" and rsi >= RSI_SOBRECOMPRA:
                             if divergencia == "Divergencia Bajista RSI" and AUTO_SHORT:
 
                                 max_inval = max(highs[-6:])
@@ -2012,33 +1976,16 @@ async def monitor_interval(interval, symbols, session):
 
                     # ==========================================================
                     # ⚡ PRIORIDAD 2 — MOVIMIENTO (% cambio)
-                    # Primero % → recién indicadores
                     # ==========================================================
 
                     if ESTRATEGIA_MOVIMIENTO_ACTIVA and interval in INTERVALOS_MOVIMIENTO:
 
-                        if abs(change) < threshold:
-                            return None
+                        if symbol in ["BTCUSDT", "ETHUSDT"]:
+                            threshold = CHANGE_THRESHOLD_BTC_ETH.get(interval, 0.0)
+                        else:
+                            threshold = CHANGE_THRESHOLD_DEFAULT.get(interval, 0.0)
 
-                        if volume >= min_volume and should_send_alert(symbol, interval, change):
-
-                            # ==========================================================
-                            # indicadores solo si realmente pasa filtro %
-                            # ==========================================================
-                            df = pd.DataFrame({'close': closes})
-
-                            rsi_series = RSIIndicator(df['close']).rsi()
-                            rsi = rsi_series.iloc[-1]
-
-                            macd_calc = MACD(close=df['close'])
-                            macd_series = macd_calc.macd()
-                            signal_series = macd_calc.macd_signal()
-
-                            macd = macd_series.iloc[-1]
-                            signal = signal_series.iloc[-1]
-
-                            ultimas_velas = res[-6:]
-                            patrones = detectar_patrones(ultimas_velas)
+                        if abs(change) >= threshold and volume >= min_volume and should_send_alert(symbol, interval, change):
 
                             cache_ciclo[symbol] = {
                                 "change": round(change, 2),
@@ -2052,14 +1999,26 @@ async def monitor_interval(interval, symbols, session):
                                 "patrones": patrones
                             }
                             return symbol
+                    
 
-                    # ==========================================================
                     # Limpia modo calma si aplica
-                    # ==========================================================
                     if symbol in calma_symbols:
                         del calma_symbols[symbol]
 
-                    return None
+                    # Guardar todo
+                    cache_ciclo[symbol] = {
+                        "change": round(change, 2),
+                        "volume": round(volume, 2),
+                        "price": last_close,
+                        "prev_price": prev_close,
+                        "rsi": round(rsi, 2),
+                        "macd": round(macd, 2),
+                        "signal": round(signal, 2),
+                        #"atr": round(atr, 4),
+                        "divergencia": divergencia,
+                        "patrones": patrones
+                    }
+                    return None  #return symbol
 
                 except Exception as e:
                     print(f"[{interval}] Error en filtro de {symbol}: {e}")
@@ -2072,64 +2031,71 @@ async def monitor_interval(interval, symbols, session):
                 nonlocal llamadas_fee, llamadas_total
 
                 try:
-                    datos = cache_ciclo[symbol]
+                     datos = cache_ciclo[symbol]
 
-                    # =========================
-                    # 🚀 AUTO TRADE ETH 1H
-                    # =========================
-                    if AUTO_TRADE and symbol == "ETHUSDT" and interval == "1h":
-                        tipo = datos.get("tipo")
+                     # =========================
+                     # 🚀 AUTO TRADE ETH 1H
+                     # =========================
+                     if AUTO_TRADE and symbol == "ETHUSDT" and interval == "1h":
+                         tipo = datos.get("tipo")
+                         # verificar permisos
+                         if tipo == "entrada_extrema_long" and not AUTO_LONG:
+                             return 0
+                         if tipo == "entrada_extrema_short" and not AUTO_SHORT:
+                             return 0
+                         if tipo in ["entrada_extrema_long", "entrada_extrema_short"]:
+                             candle_id = int(time.time() // 3600)
+                             if candle_id != last_trade_candle and time.time() - last_auto_trade_time > AUTO_TRADE_COOLDOWN:
+                                 print(f"🤖 AUTO TRADE ACTIVADO → {symbol} {interval} | {tipo}")
+ 
+                                 posicion_abierta = await hay_posicion_abierta(symbol, session)
+                                 if posicion_abierta:
+                                     print(f"⚠️ Ya hay posición abierta en {symbol}, no se abre otra.")
+                                     return 0
+                                 print(f"🤖 AUTO TRADE ACTIVADO → {symbol} {interval} | {tipo}")
+                                 
+                                 await ejecutar_auto_trade(symbol, tipo, datos["price"])  #que solo imprime en consola.
 
-                        if tipo == "entrada_extrema_long" and not AUTO_LONG:
-                            return 0
-                        if tipo == "entrada_extrema_short" and not AUTO_SHORT:
-                            return 0
+                                 last_auto_trade_time = time.time()
+                                 last_trade_candle = candle_id   
+ 
+                     # webhook a Finandy
+                     #data_trade = {
+                     #    "symbol": symbol,
+                     #    "side": "buy" if tipo == "entrada_extrema_long" else "sell"
+                     #}
+                     #await session.post(WEBHOOK_FINANDY, json=data_trade)
 
-                        if tipo in ["entrada_extrema_long", "entrada_extrema_short"]:
-                            candle_id = int(time.time() // 3600)
 
-                            if candle_id != last_trade_candle and time.time() - last_auto_trade_time > AUTO_TRADE_COOLDOWN:
-                                print(f"🤖 AUTO TRADE ACTIVADO → {symbol} {interval} | {tipo}")
+                     # Solo si pasó el filtro y vamos a alertar, pedimos el funding fee
+                     funding = await limitado(get_funding_fee, symbol, session)
+                     llamadas_fee += 1
+                     llamadas_total += 1
 
-                                posicion_abierta = await hay_posicion_abierta(symbol, session)
-                                if posicion_abierta:
-                                    print(f"⚠️ Ya hay posición abierta en {symbol}, no se abre otra.")
-                                    return 0
-
-                                await ejecutar_auto_trade(symbol, tipo, datos["price"])
-
-                                last_auto_trade_time = time.time()
-                                last_trade_candle = candle_id
-
-                    # Solo si pasó el filtro y vamos a alertar, pedimos funding
-                    funding = await limitado(get_funding_fee, symbol, session)
-
-                    llamadas_fee += 1
-                    llamadas_total += 1
-
-                    send_alert(
-                        symbol, interval,
-                        change=datos["change"],
-                        volume=datos["volume"],
-                        price=datos["price"],
-                        prev_price=datos["prev_price"],
-                        rsi=datos["rsi"],
-                        macd=datos["macd"],
-                        signal=datos["signal"],
-                        funding=funding,
-                        patrones=datos.get("patrones", []),
-                        divergencia=datos.get("divergencia"),
-                        tipo=datos.get("tipo"),
-                        inval_price=datos.get("inval_price"),
-                        tp1=datos.get("tp1"),
-                        tp2=datos.get("tp2"),
-                    )
-
-                    return 1
+                     send_alert(
+                         symbol, interval,
+                         change=datos["change"],
+                         volume=datos["volume"],
+                         price=datos["price"],
+                         prev_price=datos["prev_price"],
+                         rsi=datos["rsi"],
+                         macd=datos["macd"],
+                         signal=datos["signal"],
+                         funding=funding,
+                         patrones=datos.get("patrones", []),
+                         #atr=datos.get("atr"),
+                         divergencia=datos.get("divergencia"),
+                         tipo=datos.get("tipo"),
+                         inval_price=datos.get("inval_price"),
+                         tp1=datos.get("tp1"),
+                         tp2=datos.get("tp2"),
+                     )
+                     return 1
 
                 except Exception as e:
-                    print(f"[{interval}] ❌ Error en símbolo {symbol}: {e}")
-                    return 0
+                     print(f"[{interval}] ❌ Error en símbolo {symbol}: {e}")
+                     return 0
+
 
             resultados = await asyncio.gather(*(obtener_y_alertar(s) for s in candidatos))
             alert_count = sum(resultados)
@@ -2142,7 +2108,6 @@ async def monitor_interval(interval, symbols, session):
         print(f"[{interval}] {datetime.now().strftime('%H:%M:%S')} | {'✅' if alert_count != 0 else '❄️'} {alert_count} alerta{'s' if alert_count != 1 else ' '} | {'🕒 ' if duracion <= 9.99 else '🕒'} {duracion:.2f}s | 💸 {llamadas_fee} Fee | 🔁{'  ' if llamadas_total < 10 else ' ' if llamadas_total < 100 else ''} {llamadas_total} API")
 
         await asyncio.sleep(wait_time)
-
 
 async def main():
     cargar_config()
