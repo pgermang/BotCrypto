@@ -2152,8 +2152,3 @@ if __name__ == "__main__":
             print("🔁 Reiniciando en 10 segundos...")
             time.sleep(10)
 			sleep(10)
-			
-			
-			
-
-
