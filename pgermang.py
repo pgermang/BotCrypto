@@ -1,4 +1,3 @@
-
 # ==== CONFIGURACIÓN DE ENVÍO DE ALERTAS ====
 import os
 import sys
@@ -622,11 +621,11 @@ def manejar_callback(update: Update, context: CallbackContext):
         mostrar_configuracion_general(query)
         query.answer("✔️ Modo vela actualizado")
         return
-		
+
     if comando == "submenu_auto_trade":
         submenu_auto_trade(update, context)
         return
-		
+
     if comando == "toggle_auto_trade":
         global AUTO_TRADE
         AUTO_TRADE = not AUTO_TRADE
@@ -1339,24 +1338,13 @@ def mostrar_menu_intervalos(query):
     # 🔀 CONTROL LONG / SHORT
     # ------------------------------
     botones.append([
-        InlineKeyboardButton(
-            f"{'✅' if ACTIVAR_LONGS else '❌'} LONG",
-            callback_data="toggle_longs"
-        ),
-        InlineKeyboardButton(
-            f"{'✅' if ACTIVAR_SHORTS else '❌'} SHORT",
-            callback_data="toggle_shorts"
-        )
-    ])
-
+        InlineKeyboardButton(f"{'✅' if ACTIVAR_LONGS else '❌'} LONG", callback_data="toggle_longs"),
+        InlineKeyboardButton(f"{'✅' if ACTIVAR_SHORTS else '❌'} SHORT", callback_data="toggle_shorts")])
     botones.append([
-        InlineKeyboardButton("🔙 Volver", callback_data="submenu_configuracion")
-    ])
+        InlineKeyboardButton("🔙 Volver", callback_data="submenu_configuracion")])
 
     query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(botones))
     query.answer("✔️ Actualizado")
-
-
 
 
 def agrupar(update: Update, context: CallbackContext):
@@ -1604,7 +1592,7 @@ def detectar_divergencia_rsi_macd(closes, highs, lows, rsi_series, interval):
         pivot_strength = 2
 
     elif interval == "1h":
-        window = 20
+        window = 16
         pivot_strength = 2
 
     elif interval == "4h":
@@ -1662,7 +1650,8 @@ def detectar_divergencia_rsi_macd(closes, highs, lows, rsi_series, interval):
             return None
 
         if price2 > price1 and rsi2 < rsi1:
-            return "Divergencia Bajista RSI"
+            if rsi1 >= RSI_SOBRECOMPRA or rsi2 >= RSI_SOBRECOMPRA:
+                return "Divergencia Bajista RSI"
 
     if len(pivot_lows) >= 2:
         i1, i2 = pivot_lows[-2], pivot_lows[-1]
@@ -1681,7 +1670,8 @@ def detectar_divergencia_rsi_macd(closes, highs, lows, rsi_series, interval):
 
 
         if price2 < price1 and rsi2 > rsi1:
-            return "Divergencia Alcista RSI"
+            if rsi1 <= RSI_SOBREVENTA or rsi2 <= RSI_SOBREVENTA:
+                return "Divergencia Alcista RSI"
     return None
 
 
@@ -1935,7 +1925,7 @@ async def monitor_interval(interval, symbols, session):
                             #print(f"🐋 DIV DETECTADA → {symbol} {interval} | {divergencia} | RSI: {rsi}")    para log en la consola de div
                             # LONG
                             #if divergencia == "Divergencia Alcista RSI" and rsi <= RSI_SOBREVENTA:
-                            if divergencia == "Divergencia Alcista RSI" and rsi <= RSI_SOBREVENTA and AUTO_LONG:
+                            if divergencia == "Divergencia Alcista RSI" and AUTO_LONG:
 
                                 min_inval = min(lows[-6:])
                                 riesgo = last_close - min_inval
@@ -1961,7 +1951,7 @@ async def monitor_interval(interval, symbols, session):
 
                             # SHORT
                             #if divergencia == "Divergencia Bajista RSI" and rsi >= RSI_SOBRECOMPRA:
-                            if divergencia == "Divergencia Bajista RSI" and rsi >= RSI_SOBRECOMPRA and AUTO_SHORT:
+                            if divergencia == "Divergencia Bajista RSI" and AUTO_SHORT:
 
                                 max_inval = max(highs[-6:])
                                 riesgo = max_inval - last_close
@@ -2161,6 +2151,7 @@ if __name__ == "__main__":
             traceback.print_exc()
             print("🔁 Reiniciando en 10 segundos...")
             time.sleep(10)
+			
 			
 			
 
