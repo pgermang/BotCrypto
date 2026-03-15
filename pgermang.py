@@ -77,7 +77,7 @@ ESTRATEGIA_DIVERGENCIA_ACTIVA = True
 ESTRATEGIA_MOVIMIENTO_ACTIVA = True
 INTERVALOS_ENTRADA = ["4h", "1d", "1w"]
 INTERVALOS_MOVIMIENTO = ["5m", "15m", "1h", "4h"]
-MIN_DIVERGENCE_PRICE_DIFF = 0.5  # % mínimo entre pivots
+MIN_DIVERGENCE_PRICE_DIFF = 0.8  # % mínimo entre pivots
 
 AUTO_TRADE = False
 AUTO_LONG = True
@@ -1592,8 +1592,8 @@ def detectar_divergencia_rsi_macd(closes, highs, lows, rsi_series, interval):
         pivot_strength = 2
 
     elif interval == "1h":
-        window = 16
-        pivot_strength = 2
+        window = 24         #debe cubrir ambos pivots con distancia suficiente. que lo tengo en 14 en pine
+        pivot_strength = 10 #lbR = 10 en pine equivalente
 
     elif interval == "4h":
         window = 30
@@ -2151,6 +2151,7 @@ if __name__ == "__main__":
             traceback.print_exc()
             print("🔁 Reiniciando en 10 segundos...")
             time.sleep(10)
+			sleep(10)
 			
 			
 			
