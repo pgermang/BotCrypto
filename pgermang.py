@@ -2142,7 +2142,6 @@ async def main():
                 tasks.append(asyncio.create_task(monitor_interval(interval, symbols, session)))
         await asyncio.gather(*tasks)
 if __name__ == "__main__":
-    
     while True:
         try:
             asyncio.run(main())
@@ -2151,4 +2150,3 @@ if __name__ == "__main__":
             traceback.print_exc()
             print("🔁 Reiniciando en 10 segundos...")
             time.sleep(10)
-			sleep(10)
