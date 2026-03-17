@@ -1970,7 +1970,8 @@ async def monitor_interval(interval, symbols, session):
                             patrones = detectar_patrones(ultimas_velas)
 
                             # LONG
-                            if divergencia == "Divergencia Alcista RSI" and AUTO_LONG:
+                            if divergencia == "Divergencia Alcista RSI":
+                            #if divergencia == "Divergencia Alcista RSI" and AUTO_LONG:								
 
                                 min_inval = min(lows[-6:])
                                 riesgo = last_close - min_inval
@@ -1995,7 +1996,8 @@ async def monitor_interval(interval, symbols, session):
                                 return symbol
 
                             # SHORT
-                            if divergencia == "Divergencia Bajista RSI" and AUTO_SHORT:
+                            if divergencia == "Divergencia Bajista RSI":
+                            #if divergencia == "Divergencia Bajista RSI" and AUTO_SHORT:								
 
                                 max_inval = max(highs[-6:])
                                 riesgo = max_inval - last_close
